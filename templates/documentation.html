@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resume Parser AI - Documentation</title>
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --secondary-color: #2c3e50;
+            --accent-color: #e74c3c;
+            --light-color: #ecf0f1;
+            --dark-color: #2c3e50;
+            --success-color: #2ecc71;
+            --warning-color: #f39c12;
+            --code-bg: #f8f9fa;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f9f9f9;
+            padding-bottom: 50px;
+        }
+        
+        header {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 2rem 0;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        h2 {
+            font-size: 1.8rem;
+            margin: 2rem 0 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--primary-color);
+            color: var(--secondary-color);
+        }
+        
+        h3 {
+            font-size: 1.4rem;
+            margin: 1.5rem 0 1rem;
+            color: var(--secondary-color);
+        }
+        
+        p {
+            margin-bottom: 1rem;
+        }
+        
+        code {
+            font-family: 'Courier New', Courier, monospace;
+            background-color: var(--code-bg);
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+            font-size: 0.9rem;
+            color: var(--accent-color);
+        }
+        
+        pre {
+            background-color: var(--code-bg);
+            padding: 1rem;
+            border-radius: 5px;
+            overflow-x: auto;
+            margin: 1rem 0;
+            border-left: 4px solid var(--primary-color);
+        }
+        
+        pre code {
+            background-color: transparent;
+            padding: 0;
+            color: var(--dark-color);
+        }
+        
+        .endpoint {
+            background-color: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .endpoint-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        
+        .method {
+            font-weight: bold;
+            padding: 0.3rem 0.6rem;
+            border-radius: 4px;
+            margin-right: 1rem;
+            color: white;
+            background-color: var(--primary-color);
+        }
+        
+        .endpoint-url {
+            font-family: 'Courier New', Courier, monospace;
+            font-weight: bold;
+        }
+        
+        .tab-container {
+            margin: 1.5rem 0;
+        }
+        
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .tab {
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            background-color: #f1f1f1;
+            border: 1px solid #ddd;
+            border-bottom: none;
+            margin-right: 5px;
+            border-radius: 5px 5px 0 0;
+        }
+        
+        .tab.active {
+            background-color: white;
+            border-bottom: 1px solid white;
+            margin-bottom: -1px;
+            color: var(--primary-color);
+        }
+        
+        .tab-content {
+            display: none;
+            padding: 1rem;
+            border: 1px solid #ddd;
+            border-top: none;
+            background-color: white;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .copy-btn {
+            background-color: var(--secondary-color);
+            color: white;
+            border: none;
+            padding: 0.3rem 0.6rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            float: right;
+            transition: background-color 0.3s;
+        }
+        
+        .copy-btn:hover {
+            background-color: var(--primary-color);
+        }
+        
+        ul, ol {
+            margin-left: 2rem;
+            margin-bottom: 1rem;
+        }
+        
+        .note {
+            background-color: #e7f5fe;
+            border-left: 4px solid var(--primary-color);
+            padding: 1rem;
+            margin: 1rem 0;
+            border-radius: 0 5px 5px 0;
+        }
+        
+        .warning {
+            background-color: #fff5e6;
+            border-left: 4px solid var(--warning-color);
+            padding: 1rem;
+            margin: 1rem 0;
+            border-radius: 0 5px 5px 0;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+        }
+        
+        th, td {
+            padding: 0.75rem;
+            text-align: left;
+            border: 1px solid #ddd;
+        }
+        
+        th {
+            background-color: var(--light-color);
+            font-weight: bold;
+        }
+        
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+        
+        .section-nav {
+            background-color: white;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 2rem 0;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .section-nav ul {
+            list-style-type: none;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-wrap: wrap;
+        }
+        
+        .section-nav li {
+            margin-right: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .section-nav a {
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: 500;
+        }
+        
+        .section-nav a:hover {
+            text-decoration: underline;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 0 15px;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            h2 {
+                font-size: 1.5rem;
+            }
+            
+            .endpoint-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .method {
+                margin-bottom: 0.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>Resume Parser AI</h1>
+            <p>API Documentation and Setup Guide</p>
+        </div>
+    </header>
+    
+    <div class="container">
+        <div class="section-nav">
+            <ul>
+                <li><a href="#introduction">Introduction</a></li>
+                <li><a href="#installation">Installation</a></li>
+                <li><a href="#api-endpoints">API Endpoints</a></li>
+                <li><a href="#examples">Code Examples</a></li>
+                <li><a href="#troubleshooting">Troubleshooting</a></li>
+            </ul>
+        </div>
+        
+        <section id="introduction">
+            <h2>Introduction</h2>
+            <p>Resume Parser AI is a powerful tool that uses Natural Language Processing (NLP) and Machine Learning to analyze, categorize, and extract information from resumes. It can also match resumes against job descriptions to determine compatibility.</p>
+            
+            <div class="note">
+                <strong>Key Features:</strong>
+                <ul>
+                    <li>Extract detailed information from resumes (skills, experience, education, etc.)</li>
+                    <li>Classify resumes into different categories</li>
+                    <li>Match resumes with job descriptions and calculate compatibility scores</li>
+                    <li>Simple REST API interface for easy integration</li>
+                </ul>
+            </div>
+        </section>
+        
+        <section id="installation">
+            <h2>Installation and Setup</h2>
+            
+            <h3>Prerequisites</h3>
+            <p>Make sure you have Python 3.8+ installed on your system.</p>
+            
+            <h3>Step 1: Clone the Repository</h3>
+            <pre><code>git clone https://github.com/Soujash-123/ResumeParserAI.git
+cd ResumeParserAI</code></pre>
+            
+            <h3>Step 2: Install Dependencies</h3>
+            <pre><code>pip install -r requirements.txt
+python -m spacy download en_core_web_sm</code></pre>
+            
+            <div class="warning">
+                <strong>Note for Mac Users:</strong> If you encounter issues with PyMuPDF on Mac, you might need to install additional dependencies:
+                <pre><code>brew install mupdf swig freetype</code></pre>
+            </div>
+            
+            <h3>Step 3: Run the Application</h3>
+            <pre><code>python app.py</code></pre>
+            <p>The server will start on <code>http://localhost:5000</code> by default.</p>
+        </section>
+        
+        <section id="api-endpoints">
+            <h2>API Endpoints</h2>
+            
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="method">POST</span>
+                    <span class="endpoint-url">/parse-resume</span>
+                </div>
+                <p>Extract detailed information from a resume PDF file.</p>
+                
+                <h3>Request</h3>
+                <p><strong>Content-Type:</strong> multipart/form-data</p>
+                <table>
+                    <tr>
+                        <th>Parameter</th>
+                        <th>Type</th>
+                        <th>Description</th>
+                    </tr>
+                    <tr>
+                        <td>file</td>
+                        <td>File</td>
+                        <td>The resume PDF file to parse</td>
+                    </tr>
+                </table>
+                
+                <h3>Response</h3>
+                <pre><code>{
+  "contact_info": [...],
+  "education": [...],
+  "experience": [...],
+  "skills": [...],
+  "technologies": [...],
+  "job_titles": [...],
+  "companies": [...],
+  "duration": [...]
+}</code></pre>
+                
+                <div class="tab-container">
+                    <div class="tabs">
+                        <div class="tab active" onclick="switchTab(this, 'parse-curl')">cURL</div>
+                        <div class="tab" onclick="switchTab(this, 'parse-python')">Python</div>
+                        <div class="tab" onclick="switchTab(this, 'parse-node')">Node.js</div>
+                    </div>
+                    
+                    <div id="parse-curl" class="tab-content active">
+                        <button class="copy-btn" onclick="copyToClipboard('parse-curl-code')">Copy</button>
+                        <pre id="parse-curl-code"><code>curl -X POST \
+  http://localhost:5000/parse-resume \
+  -F "file=@/path/to/resume.pdf"</code></pre>
+                    </div>
+                    
+                    <div id="parse-python" class="tab-content">
+                        <button class="copy-btn" onclick="copyToClipboard('parse-python-code')">Copy</button>
+                        <pre id="parse-python-code"><code>import requests
+
+url = 'http://localhost:5000/parse-resume'
+files = {'file': open('/path/to/resume.pdf', 'rb')}
+
+response = requests.post(url, files=files)
+data = response.json()
+print(data)</code></pre>
+                    </div>
+                    
+                    <div id="parse-node" class="tab-content">
+                        <button class="copy-btn" onclick="copyToClipboard('parse-node-code')">Copy</button>
+                        <pre id="parse-node-code"><code>const axios = require('axios');
+const FormData = require('form-data');
+const fs = require('fs');
+
+async function parseResume() {
+  const form = new FormData();
+  form.append('file', fs.createReadStream('/path/to/resume.pdf'));
+  
+  try {
+    const response = await axios.post('http://localhost:5000/parse-resume', form, {
+      headers: form.getHeaders()
+    });
+    console.log(response.data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+parseResume();</code></pre>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="method">POST</span>
+                    <span class="endpoint-url">/process-resume</span>
+                </div>
+                <p>Classify a resume into a category and extract its text.</p>
+                
+                <h3>Request</h3>
+                <p><strong>Content-Type:</strong> multipart/form-data</p>
+                <table>
+                    <tr>
+                        <th>Parameter</th>
+                        <th>Type</th>
+                        <th>Description</th>
+                    </tr>
+                    <tr>
+                        <td>file</td>
+                        <td>File</td>
+                        <td>The resume PDF file to process</td>
+                    </tr>
+                </table>
+                
+                <h3>Response</h3>
+                <pre><code>{
+  "predicted_category": "Software Engineer",
+  "resume_text": "..."
+}</code></pre>
+                
+                <div class="tab-container">
+                    <div class="tabs">
+                        <div class="tab active" onclick="switchTab(this, 'process-curl')">cURL</div>
+                        <div class="tab" onclick="switchTab(this, 'process-python')">Python</div>
+                        <div class="tab" onclick="switchTab(this, 'process-node')">Node.js</div>
+                    </div>
+                    
+                    <div id="process-curl" class="tab-content active">
+                        <button class="copy-btn" onclick="copyToClipboard('process-curl-code')">Copy</button>
+                        <pre id="process-curl-code"><code>curl -X POST \
+  http://localhost:5000/process-resume \
+  -F "file=@/path/to/resume.pdf"</code></pre>
+                    </div>
+                    
+                    <div id="process-python" class="tab-content">
+                        <button class="copy-btn" onclick="copyToClipboard('process-python-code')">Copy</button>
+                        <pre id="process-python-code"><code>import requests
+
+url = 'http://localhost:5000/process-resume'
+files = {'file': open('/path/to/resume.pdf', 'rb')}
+
+response = requests.post(url, files=files)
+data = response.json()
+print(data)</code></pre>
+                    </div>
+                    
+                    <div id="process-node" class="tab-content">
+                        <button class="copy-btn" onclick="copyToClipboard('process-node-code')">Copy</button>
+                        <pre id="process-node-code"><code>const axios = require('axios');
+const FormData = require('form-data');
+const fs = require('fs');
+
+async function processResume() {
+  const form = new FormData();
+  form.append('file', fs.createReadStream('/path/to/resume.pdf'));
+  
+  try {
+    const response = await axios.post('http://localhost:5000/process-resume', form, {
+      headers: form.getHeaders()
+    });
+    console.log(response.data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+processResume();</code></pre>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="method">POST</span>
+                    <span class="endpoint-url">/match-resume</span>
+                </div>
+                <p>Match a resume against a job description to calculate compatibility.</p>
+                
+                <h3>Request</h3>
+                <p><strong>Content-Type:</strong> multipart/form-data</p>
+                <table>
+                    <tr>
+                        <th>Parameter</th>
+                        <th>Type</th>
+                        <th>Description</th>
+                    </tr>
+                    <tr>
+                        <td>file</td>
+                        <td>File</td>
+                        <td>The resume PDF file to match</td>
+                    </tr>
+                    <tr>
+                        <td>job_description</td>
+                        <td>Text</td>
+                        <td>The job description text to match against</td>
+                    </tr>
+                </table>
+                
+                <h3>Response</h3>
+                <pre><code>{
+  "overall_match_score": 78.45,
+  "text_similarity_score": 75.2,
+  "skill_match_score": 85.7,
+  "matching_skills": ["python", "machine learning", "sql"],
+  "missing_skills": ["kubernetes", "aws"]
+}</code></pre>
+                
+                <div class="tab-container">
+                    <div class="tabs">
+                        <div class="tab active" onclick="switchTab(this, 'match-curl')">cURL</div>
+                        <div class="tab" onclick="switchTab(this, 'match-python')">Python</div>
+                        <div class="tab" onclick="switchTab(this, 'match-node')">Node.js</div>
+                    </div>
+                    
+                    <div id="match-curl" class="tab-content active">
+                        <button class="copy-btn" onclick="copyToClipboard('match-curl-code')">Copy</button>
+                        <pre id="match-curl-code"><code>curl -X POST \
+  http://localhost:5000/match-resume \
+  -F "file=@/path/to/resume.pdf" \
+  -F "job_description=We are looking for a Python developer with experience in machine learning and SQL..."</code></pre>
+                    </div>
+                    
+                    <div id="match-python" class="tab-content">
+                        <button class="copy-btn" onclick="copyToClipboard('match-python-code')">Copy</button>
+                        <pre id="match-python-code"><code>import requests
+
+url = 'http://localhost:5000/match-resume'
+files = {'file': open('/path/to/resume.pdf', 'rb')}
+data = {
+    'job_description': 'We are looking for a Python developer with experience in machine learning and SQL...'
+}
+
+response = requests.post(url, files=files, data=data)
+result = response.json()
+print(result)</code></pre>
+                    </div>
+                    
+                    <div id="match-node" class="tab-content">
+                        <button class="copy-btn" onclick="copyToClipboard('match-node-code')">Copy</button>
+                        <pre id="match-node-code"><code>const axios = require('axios');
+const FormData = require('form-data');
+const fs = require('fs');
+
+async function matchResume() {
+  const form = new FormData();
+  form.append('file', fs.createReadStream('/path/to/resume.pdf'));
+  form.append('job_description', 'We are looking for a Python developer with experience in machine learning and SQL...');
+  
+  try {
+    const response = await axios.post('http://localhost:5000/match-resume', form, {
+      headers: form.getHeaders()
+    });
+    console.log(response.data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+matchResume();</code></pre>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <section id="examples">
+            <h2>Example Workflow</h2>
+            <p>A typical workflow for using the Resume Parser AI might look like this:</p>
+            <ol>
+                <li>Upload a resume to <code>/parse-resume</code> to extract detailed information</li>
+                <li>Use <code>/process-resume</code> to classify the resume into a category</li>
+                <li>Match the resume against a job description using <code>/match-resume</code> to determine compatibility</li>
+            </ol>
+            
+            <div class="note">
+                <strong>Tip:</strong> For batch processing of multiple resumes, you can create a simple script using the code examples provided above.
+            </div>
+        </section>
+        
+        <section id="troubleshooting">
+            <h2>Troubleshooting</h2>
+            
+            <h3>Common Issues</h3>
+            <table>
+                <tr>
+                    <th>Issue</th>
+                    <th>Solution</th>
+                </tr>
+                <tr>
+                    <td>API returns "No file provided" error</td>
+                    <td>Make sure you're sending the file with the key 'file' in your request</td>
+                </tr>
+                <tr>
+                    <td>Error with PyMuPDF on Mac</td>
+                    <td>Install additional dependencies: <code>brew install mupdf swig freetype</code></td>
+                </tr>
+                <tr>
+                    <td>Spacy model not found</td>
+                    <td>Run <code>python -m spacy download en_core_web_sm</code></td>
+                </tr>
+                <tr>
+                    <td>Poor extraction results</td>
+                    <td>Make sure the PDF is properly formatted and text-based (not scanned)</td>
+                </tr>
+            </table>
+            
+            <h3>Getting Help</h3>
+            <p>If you encounter any issues not covered here, please open an issue on the GitHub repository or contact the maintainers.</p>
+        </section>
+    </div>
+    
+    <script>
+        function switchTab(tabElement, contentId) {
+            // Get all tabs and contents
+            const tabs = document.querySelectorAll('.tab');
+            const contents = document.querySelectorAll('.tab-content');
+            
+            // Remove active class from all tabs and contents
+            tabs.forEach(tab => tab.classList.remove('active'));
+            contents.forEach(content => content.classList.remove('active'));
+            
+            // Add active class to selected tab and content
+            tabElement.classList.add('active');
+            document.getElementById(contentId).classList.add('active');
+        }
+        
+        function copyToClipboard(elementId) {
+            const element = document.getElementById(elementId);
+            const text = element.textContent;
+            
+            navigator.clipboard.writeText(text).then(() => {
+                const button = element.previousElementSibling;
+                const originalText = button.textContent;
+                button.textContent = 'Copied!';
+                setTimeout(() => {
+                    button.textContent = originalText;
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy text: ', err);
+            });
+        }
+    </script>
+</body>
+</html>

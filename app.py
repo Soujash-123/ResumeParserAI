@@ -6,7 +6,7 @@ import nltk
 import torch
 import fitz  # PyMuPDF
 import json
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.feature_extraction.text import TfidfVectorizer
 from nltk.corpus import stopwords
@@ -14,11 +14,17 @@ from nltk.tokenize import sent_tokenize
 import torch.nn as nn
 
 # Download resources (first time only)
-nltk.download('punkt')
-nltk.download('stopwords')
-nltk.download('wordnet')
-nltk.download('omw-1.4')
-spacy.cli.download("en_core_web_sm")
+try:
+    nltk.download('punkt')
+    nltk.download('punkt_tab')
+    nltk.download('stopwords')
+    nltk.download('wordnet')
+    nltk.download('omw-1.4')
+    if not spacy.util.is_package("en_core_web_sm"):
+        spacy.cli.download("en_core_web_sm")
+except Exception as e:
+    print(f"Warning: Error downloading resources: {e}")
+    # Continue anyway as resources might be available
 nlp = spacy.load("en_core_web_sm")
 stop_words = set(stopwords.words("english"))
 
@@ -116,7 +122,7 @@ def predict_resume_category(resume_text):
 
 # ------------------- Resume Information Extraction -------------------
 def extract_resume_information(text):
-    resume_text = text.lower().replace('\n', ' ').replace('\r', ' ')
+    resume_text = text.replace('\r', '').replace('\n', '\n')  # keep newlines
     extracted_info = {
         'name': None,
         'education': [],
@@ -131,35 +137,49 @@ def extract_resume_information(text):
     }
 
     doc = nlp(text)
+
     # ----------- Name Extraction -----------
     for ent in doc.ents:
         if ent.label_ == "PERSON" and len(ent.text.split()) <= 4:
             extracted_info['name'] = ent.text.strip()
             break
 
-    # ----------- Section Detection -----------
-    section_patterns = {
-        'projects': r'(projects|notable projects)[\s:\n]+',
-        'education': r'(education|academic background)[\s:\n]+',
-        'certifications': r'(certifications|certificates)[\s:\n]+',
-        'experience': r'(experience|work history|professional experience)[\s:\n]+',
-        'skills': r'(skills|technical skills|technologies|tools)[\s:\n]+',
+    # ----------- Section-wise Line Grouping -----------
+    SECTION_MAP = {
+        'education': ['education', 'academic background', 'studies'],
+        'experience': ['experience', 'work history', 'professional background'],
+        'skills': ['skills', 'technical skills', 'technologies', 'tools'],
+        'projects': ['projects', 'notable projects', 'personal projects'],
+        'certifications': ['certifications', 'certificates']
     }
 
-    for section, pattern in section_patterns.items():
-        match = re.search(pattern, resume_text, re.IGNORECASE)
-        if match:
-            start = match.end()
-            end = len(resume_text)
-            next_matches = [
-                re.search(pat, resume_text[start:], re.IGNORECASE)
-                for sec, pat in section_patterns.items() if sec != section
-            ]
-            next_starts = [m.start() for m in next_matches if m]
-            if next_starts:
-                end = start + min(next_starts)
-            section_text = resume_text[start:end].strip()
-            extracted_info[section] = sent_tokenize(section_text)[:5]
+    def normalize(text):
+        return text.strip().lower()
+
+    def detect_section_header(line):
+        line = normalize(line)
+        for section, keywords in SECTION_MAP.items():
+            for keyword in keywords:
+                if keyword in line and len(line) < 60:  # likely a section title
+                    return section
+        return None
+
+    lines = text.splitlines()
+    current_section = None
+
+    for line in lines:
+        header = detect_section_header(line)
+        if header:
+            current_section = header
+            continue
+
+        if current_section and line.strip():
+            extracted_info[current_section].append(line.strip())
+
+    # Limit each section to top 5 sentences
+    for key in SECTION_MAP.keys():
+        if isinstance(extracted_info[key], list):
+            extracted_info[key] = sent_tokenize(" ".join(extracted_info[key]))[:5]
 
     # ----------- Keywords Extraction -----------
     tech_keywords = ['python', 'java', 'sql', 'javascript', 'ml', 'ai', 'cloud',
@@ -168,21 +188,19 @@ def extract_resume_information(text):
     job_titles = ['engineer', 'developer', 'manager', 'analyst', 'scientist', 'consultant',
                   'architect', 'lead', 'intern', 'administrator']
 
-    for sent in sent_tokenize(resume_text):
+    for sent in sent_tokenize(resume_text.lower()):
         for keyword in tech_keywords:
-            if re.search(r'\b' + keyword + r'\b', sent):
+            if keyword in sent:
                 extracted_info['technologies'].append(keyword)
-
         for title in job_titles:
-            if re.search(r'\b\w*\s*' + title + r'\b', sent):
+            if title in sent:
                 extracted_info['job_titles'].append(title)
 
     for ent in doc.ents:
         if ent.label_ == "ORG":
             extracted_info['companies'].append(ent.text)
         elif ent.label_ == "DATE":
-            if re.search(r'\b(year|month|yr|mo)\b', ent.text):
-                extracted_info['duration'].append(ent.text)
+            extracted_info['duration'].append(ent.text)
 
     # Deduplicate all list entries
     for key in extracted_info:
@@ -277,6 +295,16 @@ def match_resume():
         return jsonify(match_results)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+@app.route('/')
+def index():
+    """Home page for the Resume Parser AI application"""
+    return render_template('index.html')
+
+@app.route('/docs')
+def docs():
+    """Documentation page for the Resume Parser AI API"""
+    return render_template('documentation.html')
 
 if __name__ == "__main__":
     app.run(debug=True, host='0.0.0.0', port=5000)

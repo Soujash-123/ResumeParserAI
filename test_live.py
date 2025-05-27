@@ -1,7 +1,6 @@
-# resume_test_live.py
+# test_live.py
 
 import argparse
-import re
 import nltk
 import spacy
 import fitz  # PyMuPDF
@@ -29,7 +28,7 @@ def extract_text_from_pdf(pdf_path):
 
 # ------------------- Resume Information Extraction -------------------
 def extract_resume_information(text):
-    resume_text = text.lower().replace('\n', ' ').replace('\r', ' ')
+    resume_text = text.replace('\r', '').replace('\n', '\n')  # keep newlines
     extracted_info = {
         'name': None,
         'education': [],
@@ -44,35 +43,49 @@ def extract_resume_information(text):
     }
 
     doc = nlp(text)
+
     # ----------- Name Extraction -----------
     for ent in doc.ents:
         if ent.label_ == "PERSON" and len(ent.text.split()) <= 4:
             extracted_info['name'] = ent.text.strip()
             break
 
-    # ----------- Section Detection -----------
-    section_patterns = {
-        'projects': r'(projects|notable projects)[\s:\n]+',
-        'education': r'(education|academic background)[\s:\n]+',
-        'certifications': r'(certifications|certificates)[\s:\n]+',
-        'experience': r'(experience|work history|professional experience)[\s:\n]+',
-        'skills': r'(skills|technical skills|technologies|tools)[\s:\n]+',
+    # ----------- Section-wise Line Grouping -----------
+    SECTION_MAP = {
+        'education': ['education', 'academic background', 'studies'],
+        'experience': ['experience', 'work history', 'professional background'],
+        'skills': ['skills', 'technical skills', 'technologies', 'tools'],
+        'projects': ['projects', 'notable projects', 'personal projects'],
+        'certifications': ['certifications', 'certificates']
     }
 
-    for section, pattern in section_patterns.items():
-        match = re.search(pattern, resume_text, re.IGNORECASE)
-        if match:
-            start = match.end()
-            end = len(resume_text)
-            next_matches = [
-                re.search(pat, resume_text[start:], re.IGNORECASE)
-                for sec, pat in section_patterns.items() if sec != section
-            ]
-            next_starts = [m.start() for m in next_matches if m]
-            if next_starts:
-                end = start + min(next_starts)
-            section_text = resume_text[start:end].strip()
-            extracted_info[section] = sent_tokenize(section_text)[:5]
+    def normalize(text):
+        return text.strip().lower()
+
+    def detect_section_header(line):
+        line = normalize(line)
+        for section, keywords in SECTION_MAP.items():
+            for keyword in keywords:
+                if keyword in line and len(line) < 60:  # likely a section title
+                    return section
+        return None
+
+    lines = text.splitlines()
+    current_section = None
+
+    for line in lines:
+        header = detect_section_header(line)
+        if header:
+            current_section = header
+            continue
+
+        if current_section and line.strip():
+            extracted_info[current_section].append(line.strip())
+
+    # Limit each section to top 5 sentences
+    for key in SECTION_MAP.keys():
+        if isinstance(extracted_info[key], list):
+            extracted_info[key] = sent_tokenize(" ".join(extracted_info[key]))[:5]
 
     # ----------- Keywords Extraction -----------
     tech_keywords = ['python', 'java', 'sql', 'javascript', 'ml', 'ai', 'cloud',
@@ -81,21 +94,19 @@ def extract_resume_information(text):
     job_titles = ['engineer', 'developer', 'manager', 'analyst', 'scientist', 'consultant',
                   'architect', 'lead', 'intern', 'administrator']
 
-    for sent in sent_tokenize(resume_text):
+    for sent in sent_tokenize(resume_text.lower()):
         for keyword in tech_keywords:
-            if re.search(r'\b' + keyword + r'\b', sent):
+            if keyword in sent:
                 extracted_info['technologies'].append(keyword)
-
         for title in job_titles:
-            if re.search(r'\b\w*\s*' + title + r'\b', sent):
+            if title in sent:
                 extracted_info['job_titles'].append(title)
 
     for ent in doc.ents:
         if ent.label_ == "ORG":
             extracted_info['companies'].append(ent.text)
         elif ent.label_ == "DATE":
-            if re.search(r'\b(year|month|yr|mo)\b', ent.text):
-                extracted_info['duration'].append(ent.text)
+            extracted_info['duration'].append(ent.text)
 
     # Deduplicate all list entries
     for key in extracted_info:
